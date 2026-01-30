@@ -43,20 +43,19 @@ class MainVision : ComponentActivity() {
 
     // --- STATE MANAGEMENT ---
     private var lastAnalysisTime = 0L
-    private var isProcessing = false // Prevents overlapping requests
+    private var isProcessing = false
 
     // --- GEMINI SETUP ---
-    // We use 'lazy' to initialize this only when needed
     private val generativeModel by lazy {
         GenerativeModel(
             modelName = MODEL_NAME,
             apiKey = API_KEY,
             // Optimized config for speed
             generationConfig = generationConfig {
-                temperature = 0.4f // Lower = more direct instructions
-                maxOutputTokens = 3000 // Limit length to keep TTS snappy
+                temperature = 0.4f
+                maxOutputTokens = 3000
             },
-            // The "Brain" instructions
+
             systemInstruction = content {
                 text("""
     ROLE: Navigational Guide for a blind user.
@@ -84,7 +83,7 @@ class MainVision : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_yolo) // Make sure this matches your XML filename
+        setContentView(R.layout.activity_yolo)
 
         previewView = findViewById(R.id.previewView)
         speechHelper = SpeechHelper(this)
@@ -106,12 +105,12 @@ class MainVision : ComponentActivity() {
         cameraProviderFuture.addListener({
             val cameraProvider = cameraProviderFuture.get()
 
-            // 1. Viewfinder
+
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
 
-            // 2. Image Analysis (The Vision Pipeline)
+
             val imageAnalysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888)
@@ -134,24 +133,22 @@ class MainVision : ComponentActivity() {
     private fun processFrame(imageProxy: ImageProxy) {
         val currentTime = System.currentTimeMillis()
 
-        // 1. Throttle: Only run if enough time passed AND we aren't busy
         if (currentTime - lastAnalysisTime >= THROTTLE_MS && !isProcessing) {
             lastAnalysisTime = currentTime
-            isProcessing = true // Lock the door
+            isProcessing = true
 
-            // 2. Convert to Bitmap (Fast)
             val bitmap = imageProxyToBitmap(imageProxy)
 
-            // Close the frame immediately so CameraX can continue showing preview
+
             imageProxy.close()
 
-            // 3. Send to Cloud (Background Thread)
+            // Send to Cloud
             if (bitmap != null) {
                 lifecycleScope.launch(Dispatchers.IO) {
                     analyzeWithGemini(bitmap)
                 }
             } else {
-                isProcessing = false // Unlock if conversion failed
+                isProcessing = false
             }
         } else {
             // Drop frame
@@ -161,14 +158,12 @@ class MainVision : ComponentActivity() {
 
     private suspend fun analyzeWithGemini(originalBitmap: Bitmap) {
         try {
-            // Optimization: Scale down to 512x512.
-            // This is "Vision Standard" size - huge speed boost, negligible accuracy loss.
             val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 512, 512, true)
 
             val response = generativeModel.generateContent(
                 content {
                     image(scaledBitmap)
-                    // Note: We don't need text prompt here because we put it in 'systemInstruction' above!
+
                 }
             )
 
@@ -176,7 +171,7 @@ class MainVision : ComponentActivity() {
             if (!resultText.isNullOrBlank()) {
                 Log.d(TAG, "Gemini Said: $resultText")
 
-                // Safety: If it's a "STOP" command, interrupt current speech immediately.
+
                 val isUrgent = resultText.contains("STOP", ignoreCase = true)
                 speechHelper.speak(resultText, force = isUrgent)
             }
@@ -184,9 +179,9 @@ class MainVision : ComponentActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Gemini API Error: ${e.message}")
             // Optional: Speak an error to the user if internet drops
-            // speechHelper.speak("Connection lost")
+
         } finally {
-            isProcessing = false // Unlock the door for the next frame
+            isProcessing = false
         }
     }
 
@@ -214,7 +209,6 @@ class MainVision : ComponentActivity() {
 
             var bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
 
-            // Fix Rotation (Crucial for directional instructions)
             val rotation = image.imageInfo.rotationDegrees
             if (rotation != 0) {
                 val matrix = Matrix()
