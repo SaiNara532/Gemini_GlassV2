@@ -9,15 +9,13 @@ class SpeechHelper(context: Context) : TextToSpeech.OnInitListener {
 
     private var tts: TextToSpeech? = null
     private var isReady = false
-
-    // Cooldown variables to prevent "Stop Sign... Stop Sign... Stop Sign"
     private var lastSpokenText: String? = null
     private var lastSpokenTime: Long = 0
-    // How long to wait before saying the EXACT same thing again (in milliseconds)
+
     private val duplicateCooldownMs = 3000L
 
     init {
-        // Initialize the TextToSpeech engine
+
         tts = TextToSpeech(context, this)
     }
 
@@ -44,11 +42,7 @@ class SpeechHelper(context: Context) : TextToSpeech.OnInitListener {
 
         val currentTime = System.currentTimeMillis()
 
-        // Logic: Speak if it's different text OR if 3 seconds have passed
         if (force || text != lastSpokenText || (currentTime - lastSpokenTime) > duplicateCooldownMs) {
-
-            // QUEUE_FLUSH = Drop whatever is currently saying and say this NOW.
-            // Good for urgent things like safety warnings.
             tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
 
             lastSpokenText = text

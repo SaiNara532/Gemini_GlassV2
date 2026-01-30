@@ -25,7 +25,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             GuideGlassTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    // We pass the modifier to handle the system bars (padding)
                     MainMenu(modifier = Modifier.padding(innerPadding))
                 }
             }
@@ -35,7 +34,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainMenu(modifier: Modifier = Modifier) {
-    // 1. Get the context so we can launch a new Activity
+
     val context = LocalContext.current
 
     Column(
@@ -49,16 +48,15 @@ fun MainMenu(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(bottom = 48.dp)
         )
 
-        // 2. The Button to start the Vision System
+
         Button(
             onClick = {
-                // This command launches your other file!
                 val intent = Intent(context, MainVision::class.java)
                 context.startActivity(intent)
             },
             modifier = Modifier
-                .fillMaxWidth(0.8f) // Make it 80% of screen width
-                .height(80.dp)      // Make it tall/easy to tap
+                .fillMaxWidth(0.8f)
+                .height(80.dp)
         ) {
             Text(text = "Start Vision", fontSize = 24.sp)
         }
